@@ -20,7 +20,6 @@ npm start
 Django によるバックエンドのセットアップは以下の手順で行います：
 
 ```bash
-Copy code
 cd backend
 pip install -r requirements.txt
 python manage.py runserver
