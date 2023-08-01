@@ -3,7 +3,9 @@ from django.db import models
 class dbposts(models.Model):
     id  = models.AutoField(primary_key=True)
     user_id = models.CharField(max_length=100)
+    user_name = models.CharField(max_length=100)
     text = models.CharField(max_length=100)
+    category = models.CharField(max_length=10)
     comment_cnt = models.IntegerField()
     created_at = models.DateTimeField()
 
