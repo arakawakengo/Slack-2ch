@@ -15,7 +15,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import AccessToken
 
-
 import logging
 
 Category = ["food", "tech", "sauna", "other"]
@@ -30,21 +29,18 @@ class POSTS(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        
-        if "category" in request.GET:
-            category = request.GET['category']
-        else:
-            category = None
-        
-        if category is None:
-            post_list = dbposts.objects.all()
-            question_list = dbquestions.objects.all()
-            reply_list = dbreplies.objects.all()
-        else:
+        category = request.GET.get('category', None)
+        if category and category not in Category:
+            return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
+
+        if category:
             post_list = dbposts.objects.filter(category=category)
             question_list = dbquestions.objects.filter(post__category=category)
             reply_list = dbreplies.objects.filter(question__post__category=category)
-
+        else:
+            post_list = dbposts.objects.all()
+            question_list = dbquestions.objects.all()
+            reply_list = dbreplies.objects.all()
         params = {
             "post_list": []
         }
@@ -112,23 +108,26 @@ class POSTS(APIView):
         json_str = json.dumps(params, default=json_serial, ensure_ascii=False, indent=2) 
         return HttpResponse(json_str, content_type="application/json", status=status.HTTP_200_OK)
 
+    
     def post(self, request):
-        request_data = request.data
-        user_id = request_data.get("user_id", None)
-        text = request_data.get("text", None)
-        
-        if "category" in request.GET:
-            category = request.GET['category']
-        else:
-            category = "other"
-        
-        dbposts.objects.create(
-            user=CustomUser.objects.filter(user_id=user_id).first(),
-            category = category,
-            text=text
-        )
-        
-        return HttpResponse("got it!!")
+        user_id = request.data.get("user_id", None)
+        text = request.data.get("text", None)
+        category = request.GET.get('category', "other")
+
+        if user_id is None or text is None:
+            return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
+
+        if category not in Category:
+            return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
+
+        user = CustomUser.objects.filter(user_id=user_id).first()
+        if user is None:
+            return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
+
+        dbposts.objects.create(user=user, category=category, text=text)
+
+        return HttpResponse("Post created", status=status.HTTP_201_CREATED)
+
 
 
 class QUESTIONS(APIView):
