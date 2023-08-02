@@ -120,7 +120,7 @@ class POSTS(APIView):
         if "category" in request.GET:
             category = request.GET['category']
         else:
-            category = None
+            category = "other"
         
         dbposts.objects.create(
             user=CustomUser.objects.filter(user_id=user_id).first(),
