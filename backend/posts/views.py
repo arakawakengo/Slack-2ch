@@ -17,7 +17,12 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 import logging
 
-Category = ["food", "tech", "sauna", "other"]
+Category = {
+    "food": "食べ物",
+    "tech": "テック",
+    "sauna": "サウナ",
+    "other": "その他",
+    }
 
 def json_serial(obj):
     if isinstance(obj, datetime):
@@ -89,7 +94,7 @@ class POSTS(APIView):
                 reply_dict[question_id].append(reply_info)
 
         for i in range(len(params["post_list"])):
-            if post_id := params["post_list"][i]["post_id"] not in question_dict.keys():
+            if (post_id := params["post_list"][i]["post_id"]) not in question_dict.keys():
                 q_list = []
             else:
                 q_list = question_dict[post_id]
@@ -97,7 +102,7 @@ class POSTS(APIView):
             params["post_list"][i]["question_list"] = q_list
 
             for j in range(len(q_list)):
-                if question_id := q_list[j]["question_id"] not in reply_dict.keys():
+                if (question_id := q_list[j]["question_id"]) not in reply_dict.keys():
                     r_list = []
                 else:
                     r_list = reply_dict[question_id]
@@ -180,7 +185,7 @@ class QUESTIONS(APIView):
         self.client = WebClient(token=Workspace_token)
         self.logger = logging.getLogger(__name__)
         
-        self.client.chat_postMessage(channel=channel_id, text="xxxさんから質問が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + question_text)
+        self.client.chat_postMessage(channel=channel_id, text= user.username + "さんから質問が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + question_text)
         
         return HttpResponse("got it!!!")
 
@@ -213,6 +218,22 @@ class REPLIES(APIView):
         
         question = dbquestions.objects.filter(id=question_id).first()
 
-        dbreplies.objects.create(question=question, user=user, text=reply_text)
+        dbreplies.objects.create(
+            question=question,
+            user=user, 
+            text=reply_text)
+        
+        channel_id = question.user.channel_id
+        text_shorten = question.text[:20] + "..." if len(question.text) > 20 else question.text
+
+        Workspace_token = question.user.workspace.workspace_token
+        
+        self.client = WebClient(token=Workspace_token)
+        self.logger = logging.getLogger(__name__)
+        
+        self.client.chat_postMessage(
+            channel=channel_id,
+            text= user.username + "さんから返信が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + reply_text)
+        
         
         return HttpResponse("got it!!!!!")
