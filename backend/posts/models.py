@@ -58,3 +58,10 @@ class dbreplies(models.Model):
     def __str__(self):
         return self.text
 
+class Category(models.Model):
+    id = models.AutoField(primary_key=True)
+    identifier = models.CharField(max_length=10)
+    category_name = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.category_name
