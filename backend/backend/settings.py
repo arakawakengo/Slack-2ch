@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "authentication",
     'rest_framework',
     'rest_framework.authtoken',
+    'corsheaders',
     'backend',
     'posts',
 ]
@@ -51,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -90,6 +93,12 @@ REST_FRAMEWORK = {
     )
 }
 
+#CORS_ORIGIN_WHITELIST = [
+#    "http://localhost:3000",
+#]
+
+CORS_ORIGIN_ALLOW_ALL = True
+
 from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
@@ -122,7 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'ja'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tokyo'
 
 USE_I18N = True
 

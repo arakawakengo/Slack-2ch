@@ -98,7 +98,7 @@ class ObtainTokenView(generics.GenericAPIView):
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-            })
+            }, status=status.HTTP_200_OK)
         elif not user:
             return Response({"error": "Invalid account"}, status=status.HTTP_401_UNAUTHORIZED)
         else:
