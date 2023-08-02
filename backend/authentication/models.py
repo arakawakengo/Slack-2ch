@@ -40,7 +40,7 @@ class CustomUser(AbstractUser):
     )
     
     user_id = models.CharField(max_length=20)
-    username = models.CharField(max_length=20)
+    username = models.CharField(max_length=20, unique=True)
     channel_id = models.CharField(max_length=20)
     
     class Meta:

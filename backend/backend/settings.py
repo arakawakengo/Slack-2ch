@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure-7#&-)7^qlvasja8^c-o=ts%5wvwr2)&$7emtrwu2+-e0f6a$sb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "*",
+    "160.251.53.86",
+    ]
 
 # Application definition
 
@@ -39,7 +42,6 @@ INSTALLED_APPS = [
     "authentication",
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework.authtoken',
     'corsheaders',
     'backend',
     'posts',
@@ -126,7 +128,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-#AUTH_USER_MODEL = 'authentication.CustomUser'
+AUTH_USER_MODEL = 'authentication.CustomUser'
 
 
 # Internationalization
