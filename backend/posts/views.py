@@ -29,6 +29,7 @@ class POSTS(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
+        
         category = request.GET.get('category', None)
         if category and category not in Category:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
@@ -88,28 +89,27 @@ class POSTS(APIView):
                 reply_dict[question_id].append(reply_info)
 
         for i in range(len(params["post_list"])):
-            if params["post_list"][i]["post_id"] not in question_dict.keys():
-                continue
-            post_id = params["post_list"][i]["post_id"]
-            q_list = question_dict[post_id]
-            q_list = sorted(q_list, key=lambda x:x["created_at"])
+            if post_id := params["post_list"][i]["post_id"] not in question_dict.keys():
+                q_list = []
+            else:
+                q_list = question_dict[post_id]
+                q_list = sorted(q_list, key=lambda x:x["created_at"])
             params["post_list"][i]["question_list"] = q_list
 
             for j in range(len(q_list)):
-                if q_list[j]["question_id"] not in reply_dict.keys():
-                    continue
-                question_id = q_list[j]["question_id"]
-                r_list = reply_dict[question_id]
-                r_list = sorted(r_list, key=lambda x:x["created_at"])
+                if question_id := q_list[j]["question_id"] not in reply_dict.keys():
+                    r_list = []
+                else:
+                    r_list = reply_dict[question_id]
+                    r_list = sorted(r_list, key=lambda x:x["created_at"])
                 params["post_list"][i]["question_list"][j]["reply_list"] = r_list
-
-        print(f"最終結果:{params}")
 
         json_str = json.dumps(params, default=json_serial, ensure_ascii=False, indent=2) 
         return HttpResponse(json_str, content_type="application/json", status=status.HTTP_200_OK)
 
     
     def post(self, request):
+        
         user_id = request.data.get("user_id", None)
         text = request.data.get("text", None)
         category = request.GET.get('category', "other")
@@ -143,20 +143,28 @@ class QUESTIONS(APIView):
 
     def post(self, request, post_id):
         
-        request_data = request.data
-        question_text = request_data.get("text", None)
-        
+        question_text = request.data.get("text", None)
+
+        if question_text is None:
+            return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
+
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         if auth_header is not None and 'Bearer' in auth_header:
             token = auth_header.split('Bearer ')[1]
         else:
-            token = None
+            return HttpResponse("Invalid authorization header", status=status.HTTP_401_UNAUTHORIZED)
         
-        token_decoded = AccessToken(token)
-        
+        try:
+            token_decoded = AccessToken(token)
+        except:
+            return HttpResponse("Invalid token", status=status.HTTP_401_UNAUTHORIZED)
+
         user = CustomUser.objects.filter(id=token_decoded["user_id"]).first()
-        
         post = dbposts.objects.filter(id=post_id).first()
+        
+        if not user or not post:
+            return HttpResponse("User or Post not found", status=status.HTTP_404_NOT_FOUND)
+
 
         dbquestions.objects.create(
             post=post,

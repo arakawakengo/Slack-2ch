@@ -7,5 +7,4 @@ __pycache__/
 *.env
 .venv
 
-migrations
 db.sqlite3
