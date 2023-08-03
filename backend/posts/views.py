@@ -186,6 +186,28 @@ class POSTS(APIView):
         Posts.objects.create(user=user, category=category, text=text)
 
         return HttpResponse("Post created", status=status.HTTP_201_CREATED)
+    
+    def delete(self, request, post_id):
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        post = Posts.objects.filter(id=post_id).first()
+        if user != post.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        question_list = Questions.objects.filter(post=post).all()
+        for question in question_list:
+            reply_list = Replies.objects.filter(question=question).all()
+            reply_list.delete()
+
+        question_list.delete()
+        post.delete()
+
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
 
 class QUESTIONS(APIView):
     authentication_classes = [JWTAuthentication]
@@ -261,6 +283,25 @@ class QUESTIONS(APIView):
         )
             
         return HttpResponse("got it!!!")
+    
+    def delete(self, request, post_id, question_id):
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        question = Questions.objects.filter(id=question_id).first()
+        if user != question.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        reply_list = Replies.objects.filter(question=question).all()
+        reply_list.delete()
+
+        question.delete()
+
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
 
 class REPLIES(APIView):
     authentication_classes = [JWTAuthentication]
@@ -307,7 +348,7 @@ class REPLIES(APIView):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたの投稿：\n{text_shorten}\n返信：\n{reply_text}"
+                            "text": f"<@{user.user_id}> さんから返信が来ました。 \nあなたの投稿：\{text_shorten}\n返信：\n{reply_text}"
                         }
                     },
                     {
@@ -367,6 +408,21 @@ class REPLIES(APIView):
         
         return HttpResponse("got it!!!!!")
     
+    def delete(self, request, post_id, question_id, reply_id):
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        reply = Replies.objects.filter(id=reply_id).first()
+        if user != reply.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        reply.delete()
+
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+    
 class CATERGOORIES(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -381,7 +437,7 @@ class CATERGOORIES(APIView):
         user = CustomUser.objects.filter(id=result).first()
 
         if user.is_owner == False:
-            return HttpResponse("Insufficient User Permissions", status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
         
         workspace = user.workspace
 
