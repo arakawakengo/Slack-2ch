@@ -73,23 +73,32 @@ class POSTS(APIView):
             return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
         user = CustomUser.objects.filter(id=result).first()
 
-        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
-        category_list = [x[0] for x in list(Category)]
+        Category = Categories.objects.filter(workspace=user.workspace).values_list("id", 'category_name')
+        category_dict = dict(Category)
 
-        if category and category not in category_list:
+        if category and category not in category_dict:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
 
         if category:
-            post_list = Posts.objects.filter(category=category)
-            question_list = Questions.objects.filter(post__category=category)
-            reply_list = Replies.objects.filter(question__post__category=category)
+            category_name = category_dict[category]
+            post_list = Posts.objects.filter(category=category_name)
+            question_list = Questions.objects.filter(post__category=category_name)
+            reply_list = Replies.objects.filter(question__post__category=category_name)
         else:
             post_list = Posts.objects.all()
             question_list = Questions.objects.all()
             reply_list = Replies.objects.all()
+        
+        categories_dict = {}
+        
+        for id, category in category_dict.items():
+            categories_dict[id] = {
+                    "category_name": category
+                }
+        
         params = {
             "post_list": [],
-            "category": category_list
+            "category": categories_dict
         }
 
         for p in post_list:
@@ -156,6 +165,7 @@ class POSTS(APIView):
                     r_list = reply_dict[question_id]
                     r_list = sorted(r_list, key=lambda x:x["created_at"])
                 params["post_list"][i]["question_list"][j]["reply_list"] = r_list
+                
 
         json_str = json.dumps(params, default=json_serial, ensure_ascii=False, indent=2) 
         return HttpResponse(json_str, content_type="application/json", status=status.HTTP_200_OK)
