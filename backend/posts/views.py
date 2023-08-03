@@ -98,8 +98,7 @@ class POSTS(APIView):
                 }
         
         params = {
-            "post_list": [],
-            "category": categories_dict
+            "post_list": []
         }
 
         for p in post_list:
@@ -176,7 +175,7 @@ class POSTS(APIView):
         
         text = request.data.get("text", None)
         category = request.GET.get('category', "その他")
-        category = int(category) if category else None
+        category = int(category) if category != "その他" else None
         
         is_valid, result = get_user_id(request)
         if not is_valid:
@@ -201,6 +200,27 @@ class POSTS(APIView):
 
         return HttpResponse("Post created", status=status.HTTP_201_CREATED)
     
+    def put(self, request, post_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        post = Posts.objects.filter(id=post_id).first()
+        if user != post.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            post.text = text
+            post.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
     def delete(self, request, post_id):
         is_valid, result = get_user_id(request)
         
@@ -228,10 +248,6 @@ class POSTS(APIView):
 
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
-
-
-        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
-
 
 class QUESTIONS(APIView):
     authentication_classes = [JWTAuthentication]
@@ -307,6 +323,28 @@ class QUESTIONS(APIView):
         )
             
         return HttpResponse("got it!!!")
+    
+    def put(self, request, post_id, question_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        question = Questions.objects.filter(id=question_id).first()
+        if user != question.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            question.text = text
+            question.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
     
     def delete(self, request, post_id, question_id):
         is_valid, result = get_user_id(request)
@@ -436,6 +474,27 @@ class REPLIES(APIView):
         
         return HttpResponse("got it!!!!!")
     
+    def put(self, request, post_id, question_id, reply_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        reply = Replies.objects.filter(id=reply_id).first()
+        if user != reply.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            reply.text = text
+            reply.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
     
     def delete(self, request, post_id, question_id, reply_id):
         is_valid, result = get_user_id(request)
