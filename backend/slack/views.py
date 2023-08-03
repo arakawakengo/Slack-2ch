@@ -22,7 +22,6 @@ def get_client(user):
     client = WebClient(token=Workspace_token)
     return client    
    
-    
 
 class CATCH_SLACK_COMMAND(APIView):
     

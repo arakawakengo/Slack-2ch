@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from datetime import datetime
 import json
 import pytz
+from typing import List, TypedDict
+
+import copy
 
 from posts.models import Posts, Questions, Replies, Categories
 from authentication.models import CustomUser, Workspace
@@ -59,6 +62,98 @@ def get_thread_user(question, reply_user):
         thread_user_list.append(reply.user)
 
     return thread_user_list
+
+def get_user_posts(user):
+    post_list = Posts.objects.all()
+    question_list = Questions.objects.all()
+    reply_list = Replies.objects.all()
+    
+    p_list = []
+    
+    for p in post_list:
+        post_info = {
+            "post_id": p.id,
+            "user_id": p.user.user_id,
+            "user_name": p.user.username,
+            "user_image_url": p.user.image_url,
+            "post_text": p.text,
+            "category": p.category,
+            "comment_cnt": p.comment_cnt,
+            "created_at": p.created_at,
+        }
+        p_list.append(post_info)
+
+    p_list = sorted(p_list, key=lambda x:x["created_at"], reverse=True)
+
+    question_dict = {}
+    for q in question_list:
+        question_info = {
+            "question_id": q.id,
+            "post_id": q.post.id,
+            "user_id": q.user.user_id,
+            "user_name": q.user.username,
+            "user_image_url": q.user.image_url,
+            "text": q.text,
+            "created_at": q.created_at
+        }
+        post_id = q.post.id
+        if post_id not in question_dict.keys():
+            question_dict[post_id] = [question_info]
+        else:
+            question_dict[post_id].append(question_info)
+
+    reply_dict = {}
+    for r in reply_list:
+        reply_info = {
+            "reply_id": r.id,
+            "question_id": r.question.id,
+            "user_id": r.user.user_id,
+            "user_name": r.user.username,
+            "user_image_url": r.user.image_url,
+            "text": r.text,
+            "created_at": r.created_at
+        }
+        question_id = r.question.id
+        if question_id not in reply_dict.keys():
+            reply_dict[question_id] = [reply_info]
+        else:
+            reply_dict[question_id].append(reply_info)
+
+    for i in range(len(p_list)):
+        if (post_id := p_list[i]["post_id"]) not in question_dict.keys():
+            q_list = []
+        else:
+            q_list = question_dict[post_id]
+            q_list = sorted(q_list, key=lambda x:x["created_at"])
+        p_list[i]["question_list"] = q_list
+
+        for j in range(len(q_list)):
+            if (question_id := q_list[j]["question_id"]) not in reply_dict.keys():
+                r_list = []
+            else:
+                r_list = reply_dict[question_id]
+                r_list = sorted(r_list, key=lambda x:x["created_at"])
+            p_list[i]["question_list"][j]["reply_list"] = r_list
+            
+    copied_p_list = copy.deepcopy(p_list)
+    
+    for post_info in copied_p_list:
+        if post_info["user_id"] == user.user_id:
+            continue
+        for question_info in post_info["question_list"]:
+            user_id_set = set()
+            user_id_set.add(question_info["user_id"])
+            for reply_info in question_info["reply_list"]:
+                user_id_set.add(reply_info["user_id"])
+            
+            if user.user_id in user_id_set:
+                continue
+        
+        p_list.remove(post_info)
+    
+    return p_list
+
+    
 
 class POSTS(APIView):
     authentication_classes = [JWTAuthentication]
@@ -288,9 +383,11 @@ class QUESTIONS(APIView):
         channel_id = post.user.channel_id
         text_shorten = post.text[:20] + "..." if len(post.text) > 20 else post.text
 
+        post.comment_cnt += 1
+        Posts.objects.filter(id=post_id).update(comment_cnt=post.comment_cnt)
+        
         client = get_client(post.user)
         
-
         client.chat_postMessage(
             channel=channel_id,
             blocks= [
@@ -298,7 +395,7 @@ class QUESTIONS(APIView):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"<@{user.user_id}> さんから質問が来ました。\nあなたの投稿：\n{text_shorten}\n返信：\n{question_text}"
+                        "text": f"<@{user.user_id}> さんから質問が来ました。\nあなたの投稿：\n > {text_shorten}\n質問：\n > {question_text}"
                     }
                 },
                 {
@@ -365,6 +462,8 @@ class QUESTIONS(APIView):
         except Exception as e:
             return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        question.post.comment_cnt = min(question.post.comment_cnt - 1, 0)
+        Posts.objects.filter(id=question.post.id).update(comment_cnt=question.post.comment_cnt)
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
 
@@ -414,7 +513,7 @@ class REPLIES(APIView):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"<@{user.user_id}> さんから返信が来ました。 \nあなたの投稿：\{text_shorten}\n返信：\n{reply_text}"
+                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたの投稿：\ > {text_shorten}\n返信：\n > {reply_text}"
                         }
                     },
                     {
@@ -448,7 +547,7 @@ class REPLIES(APIView):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたが参加した会話：\n{text_shorten}"
+                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたが参加した会話：\n > {text_shorten}"
                         }
                     },
                     {
@@ -562,8 +661,10 @@ class CATEGORIES(APIView):
             self.logger.error("Error creating conversation: {}".format(e))
             
             return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         
     def delete(self, request, category_id):
+
         is_valid, result = get_user_id(request)
         if not is_valid:
             return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
@@ -578,6 +679,28 @@ class CATEGORIES(APIView):
             category.delete()
         except Exception as e:
             return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
+class POSTS_USERS(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, user_id):
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        target_user = CustomUser.objects.filter(user_id=user_id, workspace=user.workspace).first()
+        
+        all_posts = get_user_posts(target_user)
+        
+        content = {
+            "post_list": all_posts
+        }
+        
+        json_str = json.dumps(content, default=json_serial, ensure_ascii=False)
+            
+        return HttpResponse(json_str, content_type="application/json", status=status.HTTP_200_OK)
 
