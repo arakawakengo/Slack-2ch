@@ -230,8 +230,35 @@ class QUESTIONS(APIView):
 
         client.chat_postMessage(
             channel=channel_id,
-            text= "http://118.27.24.255/\n" + user.username + "さんから質問が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + question_text)
-        
+            blocks= [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"<@{user.user_id}> さんから質問が来ました。 \nあなたの投稿：\{text_shorten}\n返信：\n{question_text}"
+                    }
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "GMO 2ch はこちらから:point_right:"
+                    },
+                    "accessory": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "サイトへ",
+                            "emoji": True
+                        },
+                        "value": "click_me",
+                        "url": "http://118.27.24.255/",
+                        "action_id": "button-action"
+                    }
+                }
+            ],
+        )
+            
         return HttpResponse("got it!!!")
 
 class REPLIES(APIView):
@@ -274,13 +301,67 @@ class REPLIES(APIView):
         if user != question.user:
             client.chat_postMessage(
                 channel=channel_id,
-                text= "http://118.27.24.255/\n" + user.username + "さんから返信が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + reply_text)
+                blocks= [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"<@{user.user_id}> さんから返信が来ました。 \nあなたの投稿：\{text_shorten}\n返信：\n{reply_text}"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "GMO 2ch はこちらから:point_right:"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "サイトへ",
+                                "emoji": True
+                            },
+                            "value": "click_me",
+                            "url": "http://118.27.24.255/",
+                            "action_id": "button-action"
+                        }
+                    }
+                ]
+            )
             
         thread_users = get_thread_user(question, user)
         for r_user in thread_users:
             channel_id = r_user.channel_id
             self.client.chat_postMessage(
                 channel=channel_id,
-                text="http://118.27.24.255/\n" + user.username + "さんから返信がきました!\nあなたが参加した会話：" + text_shorten)
+                blocks= [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたが参加した会話：\{text_shorten}"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "GMO 2ch はこちらから:point_right:"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "サイトへ",
+                                "emoji": True
+                            },
+                            "value": "click_me",
+                            "url": "http://118.27.24.255/",
+                            "action_id": "button-action"
+                        }
+                    }
+                ],
+            )
         
         return HttpResponse("got it!!!!!")
