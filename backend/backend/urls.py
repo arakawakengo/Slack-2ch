@@ -8,4 +8,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("accounts/", include('authentication.urls')),
     path('posts/', include('posts.urls')),
+    path('slack/', include('slack.urls')),
 ]

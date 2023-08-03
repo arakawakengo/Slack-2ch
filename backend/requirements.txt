@@ -3,3 +3,4 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 slack-sdk==3.21.3
 django-cors-headers==4.2.0
+slack-bolt==1.18.0
