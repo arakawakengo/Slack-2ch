@@ -195,7 +195,8 @@ class POSTS(APIView):
         if category and category not in category_dict:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
         
-
+        category = category_dict[category] if category else "その他"
+        
         Posts.objects.create(user=user, category=category, text=text)
 
         return HttpResponse("Post created", status=status.HTTP_201_CREATED)
