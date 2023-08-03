@@ -472,3 +472,22 @@ class CATEGORIES(APIView):
             self.logger.error("Error creating conversation: {}".format(e))
             
             return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request, category_id):
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        if user.is_owner == False:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        category = Categories.objects.filter(id=int(category_id)).first()
+
+        try:
+            category.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
