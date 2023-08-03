@@ -16,7 +16,7 @@ import secrets
 users_ignore = ["Slackbot"]
 
 
-class RegisterWorkshopView(APIView):
+class RegisterWorkspaceView(APIView):
     
     def post(self, request):
         
