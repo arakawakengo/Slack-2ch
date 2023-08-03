@@ -193,8 +193,7 @@ class POSTS(APIView):
                 }
         
         params = {
-            "post_list": [],
-            "category": categories_dict
+            "post_list": []
         }
 
         for p in post_list:
@@ -271,7 +270,7 @@ class POSTS(APIView):
         
         text = request.data.get("text", None)
         category = request.GET.get('category', "その他")
-        category = int(category) if category else None
+        category = int(category) if category != "その他" else None
         
         is_valid, result = get_user_id(request)
         if not is_valid:
@@ -296,6 +295,27 @@ class POSTS(APIView):
 
         return HttpResponse("Post created", status=status.HTTP_201_CREATED)
     
+    def put(self, request, post_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        post = Posts.objects.filter(id=post_id).first()
+        if user != post.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            post.text = text
+            post.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
     def delete(self, request, post_id):
         is_valid, result = get_user_id(request)
         
@@ -310,13 +330,19 @@ class POSTS(APIView):
         question_list = Questions.objects.filter(post=post).all()
         for question in question_list:
             reply_list = Replies.objects.filter(question=question).all()
-            reply_list.delete()
+            try:
+                reply_list.delete()
+            except Exception as e:
+                return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        question_list.delete()
-        post.delete()
+        try:
+            question_list.delete()
+            post.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
-
 
 class QUESTIONS(APIView):
     authentication_classes = [JWTAuthentication]
@@ -395,6 +421,28 @@ class QUESTIONS(APIView):
             
         return HttpResponse("got it!!!")
     
+    def put(self, request, post_id, question_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        question = Questions.objects.filter(id=question_id).first()
+        if user != question.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            question.text = text
+            question.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
+    
     def delete(self, request, post_id, question_id):
         is_valid, result = get_user_id(request)
         
@@ -407,11 +455,14 @@ class QUESTIONS(APIView):
             return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
         
         reply_list = Replies.objects.filter(question=question).all()
-        reply_list.delete()
 
-        question.delete()
-        
-        question.post.comment_cnt += 1
+        try:
+            reply_list.delete()
+            question.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        question.post.comment_cnt = min(question.post.comment_cnt - 1, 0)
         Posts.objects.filter(id=question.post.id).update(comment_cnt=question.post.comment_cnt)
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
@@ -522,6 +573,27 @@ class REPLIES(APIView):
         
         return HttpResponse("got it!!!!!")
     
+    def put(self, request, post_id, question_id, reply_id):
+        text = request.data.get("text", None)
+        is_valid, result = get_user_id(request)
+        
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
+        reply = Replies.objects.filter(id=reply_id).first()
+        if user != reply.user:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+    
+        try:
+            reply.text = text
+            reply.save()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "edit successfully"}, status=status.HTTP_200_OK)
+
     
     def delete(self, request, post_id, question_id, reply_id):
         is_valid, result = get_user_id(request)
@@ -534,7 +606,10 @@ class REPLIES(APIView):
         if user != reply.user:
             return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        reply.delete()
+        try:
+            reply.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
     
@@ -587,7 +662,26 @@ class CATEGORIES(APIView):
             
             return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
- 
+        
+    def delete(self, request, category_id):
+
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        if user.is_owner == False:
+            return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        category = Categories.objects.filter(id=int(category_id)).first()
+
+        try:
+            category.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
 class POSTS_USERS(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -597,10 +691,8 @@ class POSTS_USERS(APIView):
         if not is_valid:
             return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
         user = CustomUser.objects.filter(id=result).first()
-        
-        workspace = user.workspace
-        
-        target_user = CustomUser.objects.filter(user_id=user_id, workspace=workspace).first()
+
+        target_user = CustomUser.objects.filter(user_id=user_id, workspace=user.workspace).first()
         
         all_posts = get_user_posts(target_user)
         
@@ -611,3 +703,4 @@ class POSTS_USERS(APIView):
         json_str = json.dumps(content, default=json_serial, ensure_ascii=False)
             
         return HttpResponse(json_str, content_type="application/json", status=status.HTTP_200_OK)
+
