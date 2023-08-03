@@ -1,14 +1,14 @@
 from rest_framework.views import APIView
 from django.http import HttpResponse
+from rest_framework.response import Response
 from datetime import datetime
 import json
 import pytz
 
-from posts.models import Posts, Questions, Replies, Category
+from posts.models import Posts, Questions, Replies, Categories
 from authentication.models import CustomUser, Workspace
 
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -16,13 +16,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import AccessToken
 
 import logging
-
-Category = {
-    "food": "食べ物",
-    "tech": "テック",
-    "sauna": "サウナ",
-    "other": "その他",
-    }
 
 def json_serial(obj):
     if isinstance(obj, datetime):
@@ -52,6 +45,7 @@ class POSTS(APIView):
     def get(self, request):
         
         category = request.GET.get('category', None)
+        Category = Categories.objects.all().values_list('category_name',flat=)
         if category and category not in Category:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
 
@@ -144,6 +138,8 @@ class POSTS(APIView):
 
         if user_id is None or text is None:
             return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
+        
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
 
         if category not in Category:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
@@ -269,3 +265,38 @@ class REPLIES(APIView):
                 text="http://118.27.24.255/\n" + user.username + "さんから返信がきました!\nあなたが参加した会話：" + text_shorten)
         
         return HttpResponse("got it!!!!!")
+    
+class CATERGOORIES(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request_data = request.data
+        category_name = request_data.get("text", None)
+        
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if auth_header is not None and 'Bearer' in auth_header:
+            token = auth_header.split('Bearer ')[1]
+        else:
+            token = None
+
+        token_decoded = AccessToken(token)
+        
+        user = CustomUser.objects.filter(id=token_decoded["user_id"]).first()
+
+        if user.is_owner == False:
+            return HttpResponse("Insufficient User Permissions", status=status.HTTP_401_UNAUTHORIZED)
+        
+        workspace = user.workspace
+
+        try:
+            Categories.objects.create(
+                category_name=category_name,
+                workspace=workspace
+            )
+            return Response({"message": "category saved successfully"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            self.logger.error("Error creating conversation: {}".format(e))
+            
+            return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

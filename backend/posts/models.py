@@ -1,6 +1,7 @@
 from django.db import models
-from authentication.models import CustomUser
+from authentication.models import CustomUser, Workspace
 from django.utils import timezone
+
     
 class Posts(models.Model):
     id  = models.AutoField(primary_key=True)
@@ -58,10 +59,20 @@ class Replies(models.Model):
     def __str__(self):
         return self.text
 
-class Category(models.Model):
+class Categories(models.Model):
     id = models.AutoField(primary_key=True)
-    identifier = models.CharField(max_length=10)
     category_name = models.CharField(max_length=10)
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='categories'
+    )
+    
 
-    def __str__(self):
-        return self.category_name
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["category_name", "workspace"],
+                name="category_unique"
+            )
+        ]
