@@ -13,6 +13,8 @@ from slack_sdk.errors import SlackApiError
 
 import secrets
 
+users_ignore = ["Slackbot"]
+
 
 class RegisterWorkshopView(APIView):
     
@@ -30,7 +32,7 @@ class RegisterWorkshopView(APIView):
 
                 if user["is_bot"] == True:
                     continue
-                if user["real_name"] == "Slackbot":
+                if user["real_name"] in users_ignore:
                     continue
                 
                 user_id = user["id"]
