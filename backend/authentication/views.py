@@ -9,6 +9,10 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import UntypedToken
+from rest_framework.permissions import AllowAny
+
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
@@ -17,6 +21,18 @@ import secrets
 users_ignore = ["Slackbot"]
 default_categories = ["食べ物", "テック","サウナ","その他"]
 
+
+class VerifyTokenView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        token = request.data.get('token')
+        try:
+            UntypedToken(token)
+        except (InvalidToken, TokenError) as e:
+            return Response({'detail': str(e)}, status=400)
+
+        return Response({'detail': 'Token is valid'}, status=200)
 
 
 class RegisterWorkspaceView(APIView):
@@ -68,8 +84,7 @@ class RegisterWorkspaceView(APIView):
                 new_user.set_password(password)
                 new_user.save()
                 
-                self.client.chat_postMessage(channel=channel_id, text="ワークショップID："+ workspace_id + "\nユーザID："+ user_id  +  "\nパスワード："+ password)
-
+                self.client.chat_postMessage(channel=channel_id, text="ワークスペースID："+ workspace_id + "\nユーザID："+ user_id  +  "\nパスワード："+ password)
                 
         workspace_info = self.client.team_info()
         

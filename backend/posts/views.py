@@ -272,7 +272,7 @@ class QUESTIONS(APIView):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"<@{user.user_id}> さんから質問が来ました。\nあなたの投稿：\n{text_shorten}\n返信：\n{question_text}"
+                        "text": f"<@{user.user_id}> さんから質問が来ました。\nあなたの投稿：\n > {text_shorten}\n質問：\n > {question_text}"
                     }
                 },
                 {
@@ -362,7 +362,7 @@ class REPLIES(APIView):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"<@{user.user_id}> さんから返信が来ました。 \nあなたの投稿：\{text_shorten}\n返信：\n{reply_text}"
+                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたの投稿：\ > {text_shorten}\n返信：\n > {reply_text}"
                         }
                     },
                     {
@@ -396,7 +396,7 @@ class REPLIES(APIView):
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたが参加した会話：\n{text_shorten}"
+                            "text": f"<@{user.user_id}> さんから返信が来ました。\nあなたが参加した会話：\n > {text_shorten}"
                         }
                     },
                     {
