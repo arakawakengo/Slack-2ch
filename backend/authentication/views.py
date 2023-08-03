@@ -3,6 +3,7 @@ from django.shortcuts import render
 import logging
 
 from .models import CustomUser, Workspace
+from posts.models import Categories
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -77,6 +78,16 @@ class RegisterWorkspaceView(APIView):
                         "workspace_token":token,
                     }
                 )
+        
+        categories = ["食べ物", "テック","サウナ","その他"]
+
+        if created:
+            for category in categories:
+                Categories.objects.create(
+                    category_name=category,
+                    workspace=new_workspace
+                )
+        
 
         # Put users into the dict       
         try:

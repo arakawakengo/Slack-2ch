@@ -1,14 +1,14 @@
 from rest_framework.views import APIView
 from django.http import HttpResponse
+from rest_framework.response import Response
 from datetime import datetime
 import json
 import pytz
 
-from posts.models import Posts, Questions, Replies, Category
+from posts.models import Posts, Questions, Replies, Categories
 from authentication.models import CustomUser, Workspace
 
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -17,14 +17,6 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 import logging
 
-Category = {
-    "food": "食べ物",
-    "tech": "テック",
-    "sauna": "サウナ",
-    "other": "その他",
-    }
-
-logger = logging.getLogger(__name__)
 
 def json_serial(obj):
     if isinstance(obj, datetime):
@@ -75,7 +67,16 @@ class POSTS(APIView):
     def get(self, request):
         
         category = request.GET.get('category', None)
-        if category and category not in Category:
+
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
+        category_list = [x[0] for x in list(Category)]
+
+        if category and category not in category_list:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
 
         if category:
@@ -87,7 +88,8 @@ class POSTS(APIView):
             question_list = Questions.objects.all()
             reply_list = Replies.objects.all()
         params = {
-            "post_list": []
+            "post_list": [],
+            "category": category_list
         }
 
         for p in post_list:
@@ -161,24 +163,23 @@ class POSTS(APIView):
     
     def post(self, request):
         
-        #user_id = request.data.get("user_id", None)
         text = request.data.get("text", None)
-        category = request.GET.get('category', "other")
+        category = request.GET.get('category', "その他")
         
         is_valid, result = get_user_id(request)
         if not is_valid:
             return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
         user = CustomUser.objects.filter(id=result).first()
         
-        #user = CustomUser.objects.filter(user_id=user_id).first()
-        
         if user is None:
             return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
 
         if text is None:
             return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
-
-        if category not in Category:
+        
+        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
+        category_list = [x[0] for x in list(Category)]
+        if category not in category_list:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -365,3 +366,33 @@ class REPLIES(APIView):
             )
         
         return HttpResponse("got it!!!!!")
+    
+class CATERGOORIES(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request_data = request.data
+        category_name = request_data.get("text", None)
+        
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        if user.is_owner == False:
+            return HttpResponse("Insufficient User Permissions", status=status.HTTP_401_UNAUTHORIZED)
+        
+        workspace = user.workspace
+
+        try:
+            Categories.objects.create(
+                category_name=category_name,
+                workspace=workspace
+            )
+            return Response({"message": "category saved successfully"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            self.logger.error("Error creating conversation: {}".format(e))
+            
+            return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
