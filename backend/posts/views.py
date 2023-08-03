@@ -438,15 +438,14 @@ class CATEGORIES(APIView):
         
         categories = Categories.objects.filter(workspace=workspace)
         
-        categories_list = []
+        categories_dict = {}
         
         for category in categories:
-            categories_list.append({
-                "id": category.id,
-                "category_name": category.category_name
-            })
+            categories_dict[category.id] = {
+                    "category_name": category.category_name
+                }
         
-        return Response(categories_list, status=status.HTTP_200_OK)
+        return Response(categories_dict, status=status.HTTP_200_OK)
 
     def post(self, request):
         request_data = request.data
