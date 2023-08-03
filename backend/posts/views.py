@@ -333,7 +333,7 @@ class REPLIES(APIView):
         thread_users = get_thread_user(question, user)
         for r_user in thread_users:
             channel_id = r_user.channel_id
-            self.client.chat_postMessage(
+            client.chat_postMessage(
                 channel=channel_id,
                 blocks= [
                     {
