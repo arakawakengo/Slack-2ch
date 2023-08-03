@@ -67,6 +67,7 @@ class POSTS(APIView):
     def get(self, request):
         
         category = request.GET.get('category', None)
+        category = int(category) if category else None
 
         is_valid, result = get_user_id(request)
         if not is_valid:
