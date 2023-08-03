@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
 
-from posts.models import dbposts
+from posts.models import Posts
 from authentication.models import CustomUser
 
 from django.http import JsonResponse
@@ -167,7 +167,7 @@ class POST_VIA_SLACK(APIView):
             return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
 
         try:
-            dbposts.objects.create(user=user, category=category, text=text)
+            Posts.objects.create(user=user, category=category, text=text)
         
             client = get_client(user)
             client.chat_postMessage(channel=user.channel_id, text="投稿が完了しました。")
