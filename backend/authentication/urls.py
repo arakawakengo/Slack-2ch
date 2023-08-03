@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import RegisterWorkshopView, ObtainTokenView
+from .views import RegisterWorkspaceView, ObtainTokenView
 
 urlpatterns = [
-    path('register/', RegisterWorkshopView.as_view(), name="register_workshop"),
+    path('register/', RegisterWorkspaceView.as_view(), name="register_workshop"),
     path('login/', ObtainTokenView.as_view(), name="login"),
 ]

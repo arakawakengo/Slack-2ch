@@ -17,10 +17,32 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 import logging
 
+
 def json_serial(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     raise TypeError ("Type %s not serializable" % type(obj))
+
+def get_user_id(request):
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if auth_header is not None and 'Bearer' in auth_header:
+        token = auth_header.split('Bearer ')[1]
+    else:
+        return False, "Invalid authorization header"
+    
+    try:
+        token_decoded = AccessToken(token)
+    except:
+        return False, "Invalid token"
+    
+    id = token_decoded['user_id']
+    
+    return True, id
+
+def get_client(user):
+    Workspace_token = user.workspace.workspace_token
+    client = WebClient(token=Workspace_token)
+    return client    
 
 def get_thread_user(question, reply_user):
     unique_user_list = set()
@@ -45,8 +67,16 @@ class POSTS(APIView):
     def get(self, request):
         
         category = request.GET.get('category', None)
-        Category = Categories.objects.all().values_list('category_name',flat=)
-        if category and category not in Category:
+
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+
+        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
+        category_list = [x[0] for x in list(Category)]
+
+        if category and category not in category_list:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
 
         if category:
@@ -58,7 +88,8 @@ class POSTS(APIView):
             question_list = Questions.objects.all()
             reply_list = Replies.objects.all()
         params = {
-            "post_list": []
+            "post_list": [],
+            "category": category_list
         }
 
         for p in post_list:
@@ -132,27 +163,29 @@ class POSTS(APIView):
     
     def post(self, request):
         
-        user_id = request.data.get("user_id", None)
         text = request.data.get("text", None)
-        category = request.GET.get('category', "other")
-
-        if user_id is None or text is None:
-            return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
+        category = request.GET.get('category', "その他")
         
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-
-        if category not in Category:
-            return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
-
-        user = CustomUser.objects.filter(user_id=user_id).first()
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+        
         if user is None:
             return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
+
+        if text is None:
+            return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
+        
+        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
+        category_list = [x[0] for x in list(Category)]
+        if category not in category_list:
+            return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
+        
 
         Posts.objects.create(user=user, category=category, text=text)
 
         return HttpResponse("Post created", status=status.HTTP_201_CREATED)
-
-
 
 class QUESTIONS(APIView):
     authentication_classes = [JWTAuthentication]
@@ -172,18 +205,12 @@ class QUESTIONS(APIView):
         if question_text is None:
             return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
 
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        if auth_header is not None and 'Bearer' in auth_header:
-            token = auth_header.split('Bearer ')[1]
-        else:
-            return HttpResponse("Invalid authorization header", status=status.HTTP_401_UNAUTHORIZED)
+        is_valid, result = get_user_id(request)
         
-        try:
-            token_decoded = AccessToken(token)
-        except:
-            return HttpResponse("Invalid token", status=status.HTTP_401_UNAUTHORIZED)
-
-        user = CustomUser.objects.filter(id=token_decoded["user_id"]).first()
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        
+        user = CustomUser.objects.filter(id=result).first()
         post = Posts.objects.filter(id=post_id).first()
         
         if not user or not post:
@@ -199,14 +226,12 @@ class QUESTIONS(APIView):
         channel_id = post.user.channel_id
         text_shorten = post.text[:20] + "..." if len(post.text) > 20 else post.text
 
-        Workspace_token = post.user.workspace.workspace_token
+        client = get_client(post.user)
         
-        self.client = WebClient(token=Workspace_token)
-        self.logger = logging.getLogger(__name__)
-        
-        self.client.chat_postMessage(
-            channel=channel_id, 
-            text= "http://118.27.24.255/\n" +  user.username + "さんから質問が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + question_text)
+
+        client.chat_postMessage(
+            channel=channel_id,
+            text= "http://118.27.24.255/\n" + user.username + "さんから質問が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + question_text)
         
         return HttpResponse("got it!!!")
 
@@ -227,15 +252,13 @@ class REPLIES(APIView):
         request_data = request.data
         reply_text = request_data.get("text", None)
         
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        if auth_header is not None and 'Bearer' in auth_header:
-            token = auth_header.split('Bearer ')[1]
-        else:
-            token = None
+        is_valid, result = get_user_id(request)
         
-        token_decoded = AccessToken(token)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
         
-        user = CustomUser.objects.filter(id=token_decoded["user_id"]).first()
+
+        user = CustomUser.objects.filter(id=result).first()
         
         question = Questions.objects.filter(id=question_id).first()
 
@@ -247,20 +270,17 @@ class REPLIES(APIView):
         channel_id = question.user.channel_id
         text_shorten = question.text[:20] + "..." if len(question.text) > 20 else question.text
 
-        Workspace_token = question.user.workspace.workspace_token
-        
-        self.client = WebClient(token=Workspace_token)
-        self.logger = logging.getLogger(__name__)
-        
+        client = get_client(question.user)
+
         if user != question.user:
-            self.client.chat_postMessage(
+            client.chat_postMessage(
                 channel=channel_id,
-                text="http://118.27.24.255/\n" +   user.username + "さんから返信が来ました！\nあなたの投稿：" + text_shorten + "\nリプライ：" + reply_text)
+                text= "http://118.27.24.255/\n" + user.username + "さんから返信が来ました！\nあなたの投稿：" + text_shorten + "\n質問：" + reply_text)
             
         thread_users = get_thread_user(question, user)
         for r_user in thread_users:
             channel_id = r_user.channel_id
-            self.client.chat_postMessage(
+            client.chat_postMessage(
                 channel=channel_id,
                 text="http://118.27.24.255/\n" + user.username + "さんから返信がきました!\nあなたが参加した会話：" + text_shorten)
         
@@ -274,15 +294,10 @@ class CATERGOORIES(APIView):
         request_data = request.data
         category_name = request_data.get("text", None)
         
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        if auth_header is not None and 'Bearer' in auth_header:
-            token = auth_header.split('Bearer ')[1]
-        else:
-            token = None
-
-        token_decoded = AccessToken(token)
-        
-        user = CustomUser.objects.filter(id=token_decoded["user_id"]).first()
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
 
         if user.is_owner == False:
             return HttpResponse("Insufficient User Permissions", status=status.HTTP_401_UNAUTHORIZED)
