@@ -38,6 +38,9 @@ class RegisterWorkshopView(APIView):
                 user_id = user["id"]
                 workspace_id = user["team_id"]
                 username = user["real_name"]
+                email = user["profile"]["email"]
+                image_url = user["profile"]["image_192"]
+                is_owner = user["is_owner"]
                 
                 channel_id = self.client.conversations_open(users=user_id)["channel"]["id"]
                 
@@ -49,6 +52,9 @@ class RegisterWorkshopView(APIView):
                     defaults={
                         "username":username,
                         "channel_id":channel_id,
+                        "email": email,
+                        "image_url": image_url,
+                        "is_owner": is_owner
                     }
                 )
                 
@@ -100,6 +106,13 @@ class ObtainTokenView(generics.GenericAPIView):
             return Response({
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'user_id': user_id,
+                'user_name': user.username,
+                'email': user.email,
+                'image_url': user.image_url,
+                'is_owner': user.is_owner,
+                'workspace_id': workspace_id,
+                'workspace_name': workspace.workspace_name,
             }, status=status.HTTP_200_OK)
         elif not user:
             return Response({"error": "Invalid account"}, status=status.HTTP_401_UNAUTHORIZED)

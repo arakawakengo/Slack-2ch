@@ -2,7 +2,7 @@ from django.db import models
 from authentication.models import CustomUser
 from django.utils import timezone
     
-class dbposts(models.Model):
+class Posts(models.Model):
     id  = models.AutoField(primary_key=True)
     user = models.ForeignKey(
         CustomUser,
@@ -18,10 +18,10 @@ class dbposts(models.Model):
     def __str__(self):
         return self.text
     
-class dbquestions(models.Model):
+class Questions(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(
-        dbposts,
+        Posts,
         on_delete=models.CASCADE,
         related_name='posts_questions'
     )
@@ -39,7 +39,7 @@ class dbquestions(models.Model):
     def __str__(self):
         return self.text
 
-class dbreplies(models.Model):
+class Replies(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(
         CustomUser,
@@ -48,7 +48,7 @@ class dbreplies(models.Model):
         related_name='users_replies'
     )
     question = models.ForeignKey(
-        dbquestions,
+        Questions,
         on_delete=models.CASCADE,
         related_name='questions_replies',
     )
