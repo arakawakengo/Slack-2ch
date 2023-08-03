@@ -176,6 +176,7 @@ class POSTS(APIView):
         
         text = request.data.get("text", None)
         category = request.GET.get('category', "その他")
+        category = int(category) if category else None
         
         is_valid, result = get_user_id(request)
         if not is_valid:
@@ -188,9 +189,10 @@ class POSTS(APIView):
         if text is None:
             return HttpResponse("Invalid parameters", status=status.HTTP_400_BAD_REQUEST)
         
-        Category = Categories.objects.filter(workspace=user.workspace).values_list('category_name')
-        category_list = [x[0] for x in list(Category)]
-        if category not in category_list:
+        Category = Categories.objects.filter(workspace=user.workspace).values_list("id", 'category_name')
+        category_dict = dict(Category)
+
+        if category and category not in category_dict:
             return HttpResponse("Invalid category", status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -483,3 +485,29 @@ class CATEGORIES(APIView):
             self.logger.error("Error creating conversation: {}".format(e))
             
             return Response({"error": "Error creating conversation: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+"""
+class POSTS_USERS(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, user_id):
+        is_valid, result = get_user_id(request)
+        if not is_valid:
+            return HttpResponse(result, status=status.HTTP_401_UNAUTHORIZED)
+        user = CustomUser.objects.filter(id=result).first()
+        
+        workspace = user.workspace
+        
+        target_user = 
+        
+        users_dict = {}
+        
+        for user in users:
+            users_dict[user.id] = {
+                    "user_name": user.user_name
+                }
+        
+        return Response(users_dict, status=status.HTTP_200_OK)
+        
+"""
