@@ -42,6 +42,9 @@ class CustomUser(AbstractUser):
     user_id = models.CharField(max_length=20)
     username = models.CharField(max_length=20, unique=True)
     channel_id = models.CharField(max_length=20)
+    email = models.CharField(max_length=100)
+    image_url = models.CharField(max_length=200)
+    is_owner = models.BooleanField()
     
     class Meta:
         constraints = [
