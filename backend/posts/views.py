@@ -201,10 +201,20 @@ class POSTS(APIView):
         question_list = Questions.objects.filter(post=post).all()
         for question in question_list:
             reply_list = Replies.objects.filter(question=question).all()
-            reply_list.delete()
+            try:
+                reply_list.delete()
+            except Exception as e:
+                return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        question_list.delete()
-        post.delete()
+        try:
+            question_list.delete()
+            post.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+        return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
+
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
 
@@ -296,9 +306,13 @@ class QUESTIONS(APIView):
             return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
         
         reply_list = Replies.objects.filter(question=question).all()
-        reply_list.delete()
 
-        question.delete()
+        try:
+            reply_list.delete()
+            question.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
 
@@ -420,7 +434,10 @@ class REPLIES(APIView):
         if user != reply.user:
             return Response({"message": "Insufficient User Permissions"}, status=status.HTTP_401_UNAUTHORIZED)
         
-        reply.delete()
+        try:
+            reply.delete()
+        except Exception as e:
+            return Response({"error": "Error cannot delete: {}".format(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"message": "delete successfully"}, status=status.HTTP_200_OK)
     
