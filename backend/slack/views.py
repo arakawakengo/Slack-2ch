@@ -163,7 +163,9 @@ class POST_VIA_SLACK(APIView):
             return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
 
         try:
-            Posts.objects.create(user=user, category=category, text=text)
+            category_name = Categories.objects.get(id=category).category_name
+            
+            Posts.objects.create(user=user, category=category_name, text=text)
         
             client = get_client(user)
             client.chat_postMessage(channel=user.channel_id, text="投稿が完了しました。")

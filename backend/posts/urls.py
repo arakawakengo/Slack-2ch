@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:post_id>/questions/<int:question_id>/', views.QUESTIONS.as_view()),
     path('<int:post_id>/questions/<int:question_id>/replies/', views.REPLIES.as_view()),
     path('<int:post_id>/questions/<int:question_id>/replies/<int:reply_id>/', views.REPLIES.as_view()),
+    #path('users/<str:user_id>/', views.POSTS_USERS.as_view()),
 ]
