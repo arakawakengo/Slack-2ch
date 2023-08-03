@@ -15,6 +15,8 @@ from slack_sdk.errors import SlackApiError
 import secrets
 
 users_ignore = ["Slackbot"]
+default_categories = ["食べ物", "テック","サウナ","その他"]
+
 
 
 class RegisterWorkspaceView(APIView):
@@ -79,10 +81,8 @@ class RegisterWorkspaceView(APIView):
                     }
                 )
         
-        categories = ["食べ物", "テック","サウナ","その他"]
-
         if created:
-            for category in categories:
+            for category in default_categories:
                 Categories.objects.create(
                     category_name=category,
                     workspace=new_workspace

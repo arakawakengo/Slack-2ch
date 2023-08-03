@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
 
-from posts.models import Posts
+from posts.models import Posts, Categories
 from authentication.models import CustomUser
 
 from django.http import JsonResponse
@@ -13,13 +13,6 @@ from slack_sdk.errors import SlackApiError
 from rest_framework import status
 
 import logging
-
-Category = {
-    "food": "食べ物",
-    "tech": "テック",
-    "sauna": "サウナ",
-    "other": "その他",
-    }
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +49,7 @@ class CATCH_SLACK_COMMAND(APIView):
                         "text": category,
                         "emoji": True
                     },
-                    "value": key
+                    "value": str(key)
                 }
                 options.append(option)
             return options
@@ -64,6 +57,8 @@ class CATCH_SLACK_COMMAND(APIView):
             
         
         try:
+            category_list = Categories.objects.filter(workspace=user.workspace).values("id", "category_name")
+            category_dict = {c["id"]: c["category_name"] for c in category_list}
             
             view = {
                 "type": "modal",
@@ -82,7 +77,7 @@ class CATCH_SLACK_COMMAND(APIView):
                                 "text": "カテゴリ選択",
                                 "emoji": True
                             },
-                            "options": make_category_options(Category),
+                            "options": make_category_options(category_dict),
                             "action_id": "category_select-action",
                         },
                         "label": {
@@ -128,7 +123,7 @@ class CATCH_SLACK_COMMAND(APIView):
                 ],
                 "submit": {
                     "type": "plain_text",
-                    "text": "Submit"
+                    "text": "投稿"
                 },
             }
             
@@ -152,6 +147,7 @@ class POST_VIA_SLACK(APIView):
         payload = json.loads(payload_str)
         
         category =  payload['view']['state']['values']['category_select-block']['category_select-action']['selected_option']['value']
+        category = int(category)
         text = payload['view']['state']['values']['main_text_input-block']['main_text_input-action']['value']
         url_check = payload['view']['state']['values']['url_input-block']['url_input-action']
         url = url_check["value"] if "value" in url_check else None
