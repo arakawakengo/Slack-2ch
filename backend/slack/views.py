@@ -119,7 +119,24 @@ class CATCH_SLACK_COMMAND(APIView):
                             "emoji": True,
                         },
                         "block_id": "url_input-block"
-                    }
+                    },
+                    {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "チャンネルにも送信する場合は選択してください"
+                    },
+                    "accessory": {
+                        "type": "multi_conversations_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select channels",
+                            "emoji": True
+                        },
+                        "action_id": "multi_conversations_select-action"
+                    },
+                    "block_id": "multi_conversations_select-block"                    
+                }
                 ],
                 "submit": {
                     "type": "plain_text",
@@ -152,6 +169,9 @@ class POST_VIA_SLACK(APIView):
         url_check = payload['view']['state']['values']['url_input-block']['url_input-action']
         url = url_check["value"] if "value" in url_check else None
         
+        channels_to_send_check = payload['view']['state']['values']['multi_conversations_select-block']['multi_conversations_select-action']
+        channels_to_send = channels_to_send_check["selected_conversations"] if "selected_conversations" in channels_to_send_check else None
+        
         if url:
             text = text + f"\n参考URL:[{url}]({url})" + "{" + ":target='_blank'}"
         
@@ -168,7 +188,30 @@ class POST_VIA_SLACK(APIView):
             Posts.objects.create(user=user, category=category_name, text=text)
         
             client = get_client(user)
-            client.chat_postMessage(channel=user.channel_id, text="投稿が完了しました。")
+            
+            
+            if channels_to_send:
+                
+                for channel in channels_to_send:
+                    
+                    client.chat_postMessage(
+                        channel=channel,
+                        text = "{} さんのGMO 2chへの投稿が完了しました。\nカテゴリ: {}\n投稿内容: {}".format(user.username, category_name, text)
+                        #blocks= [
+                        #    {
+                        #        "type": "section",
+                        #        "text": {
+                        #            "type": "mrkdwn",
+                        #            "text": "<@{user.user_id}> さんのGMO 2chへの投稿が完了しました。\nカテゴリ: {}\n投稿内容: {}".format(category_name, text)
+                        #        }
+                        #    },
+                        #]
+                    )
+            
+            client.chat_postMessage(
+                channel=user.channel_id,
+                text="投稿が完了しました。\nカテゴリ: {}\n投稿内容: {}".format(category_name, text),
+            )
             
             return JsonResponse({}, status=status.HTTP_201_CREATED)
         
