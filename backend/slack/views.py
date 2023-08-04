@@ -152,7 +152,7 @@ class POST_VIA_SLACK(APIView):
         url = url_check["value"] if "value" in url_check else None
         
         if url:
-            text = text + "\n参考URL:" + [f"{url}"](url)
+            text = text + f"\n参考URL:[{url}]({url})" + "{" + ":target='_blank'}"
         
         user_id = payload['user']['id']
         team_id = payload['team']['id']
