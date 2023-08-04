@@ -11,7 +11,7 @@ class Posts(models.Model):
         null=True,
         related_name='users_posts'
     )
-    text = models.CharField(max_length=100)
+    text = models.CharField(max_length=1000)
     category = models.CharField(max_length=10)
     comment_cnt = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
