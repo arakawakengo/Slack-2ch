@@ -98,6 +98,7 @@ class CATCH_SLACK_COMMAND(APIView):
                             "text": "投稿内容",
                             "emoji": True
                         },
+                        "max_length": 1000,
                         "block_id": "main_text_input-block",
                     },
                     {
