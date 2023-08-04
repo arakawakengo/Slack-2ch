@@ -122,23 +122,23 @@ class CATCH_SLACK_COMMAND(APIView):
                         },
                         "block_id": "url_input-block"
                     },
-                    #{
-                        #"type": "section",
-                        #"text": {
-                        #    "type": "mrkdwn",
-                        #    "text": "チャンネルにも送信する場合は選択してください"
-                        #},
-                        #"accessory": {
-                        #    "type": "multi_conversations_select",
-                        #    "placeholder": {
-                        #        "type": "plain_text",
-                        #        "text": "Select channels",
-                        #        "emoji": True
-                        #    },
-                        #    "action_id": "multi_conversations_select-action"
-                        #},
-                        #"block_id": "multi_conversations_select-block"                    
-                    #}
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "チャンネルにも送信する場合は選択してください"
+                        },
+                        "accessory": {
+                            "type": "multi_conversations_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select channels",
+                                "emoji": True
+                            },
+                            "action_id": "multi_conversations_select-action"
+                        },
+                        "block_id": "multi_conversations_select-block"                    
+                    }
                 ],
                 "submit": {
                     "type": "plain_text",
@@ -165,14 +165,16 @@ class POST_VIA_SLACK(APIView):
         
         payload = json.loads(payload_str)
         
+        #print(payload)
+        
         category =  payload['view']['state']['values']['category_select-block']['category_select-action']['selected_option']['value']
         category = int(category)
         text = payload['view']['state']['values']['main_text_input-block']['main_text_input-action']['value']
         url_check = payload['view']['state']['values']['url_input-block']['url_input-action']
         url = url_check["value"] if "value" in url_check else None
         
-        channels_to_send_check = payload['view']['state']['values']['multi_conversations_select-block']['multi_conversations_select-action']
-        channels_to_send = channels_to_send_check["selected_conversations"] if "selected_conversations" in channels_to_send_check else None
+        #channels_to_send_check = payload['view']['state']['values']['multi_conversations_select-block']['multi_conversations_select-action']
+        #channels_to_send = channels_to_send_check["selected_conversations"] if "selected_conversations" in channels_to_send_check else None
         
         if url:
             text = text + f"\n参考URL:[{url}]({url})"
@@ -183,7 +185,7 @@ class POST_VIA_SLACK(APIView):
         user = CustomUser.objects.filter(user_id=user_id, workspace__workspace_id=team_id).first()
         if user is None:
             return HttpResponse("User not found", status=status.HTTP_404_NOT_FOUND)
-
+        
         try:
             category_name = Categories.objects.get(id=category).category_name
             
@@ -192,13 +194,17 @@ class POST_VIA_SLACK(APIView):
             client = get_client(user)
             
             
-            if channels_to_send:
+            #if channels_to_send:
                 
-                for channel in channels_to_send:
+            #    print(channels_to_send)
+                
+            #    for channel in channels_to_send:
                     
-                    client.chat_postMessage(
-                        channel=channel,
-                        text = "{} さんのGMO 2chへの投稿が完了しました。\nカテゴリ: {}\n投稿内容: {}".format(user.username, category_name, text)
+            #        print(channel)
+                    
+                    #client.chat_postMessage(
+                    #    channel=channel,
+                    #    text = "{} さんのGMO 2chへの投稿が完了しました。\nカテゴリ: {}\n投稿内容: {}".format(user.username, category_name, text)
                         #blocks= [
                         #    {
                         #        "type": "section",
@@ -208,7 +214,7 @@ class POST_VIA_SLACK(APIView):
                         #        }
                         #    },
                         #]
-                    )
+                    #)
             
             client.chat_postMessage(
                 channel=user.channel_id,
