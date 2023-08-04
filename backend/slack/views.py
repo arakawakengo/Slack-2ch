@@ -37,6 +37,8 @@ class CATCH_SLACK_COMMAND(APIView):
         
         user = CustomUser.objects.filter(user_id=user_id, workspace__workspace_id=team_id).first()
         
+        print(user.channel_id)
+        
         client = get_client(user)
         
         def make_category_options(category_dict):
@@ -92,13 +94,13 @@ class CATCH_SLACK_COMMAND(APIView):
                             "type": "plain_text_input",
                             "multiline": True,
                             "action_id": "main_text_input-action",
+                            "max_length": 1000,
                         },
                         "label": {
                             "type": "plain_text",
                             "text": "投稿内容",
                             "emoji": True
                         },
-                        "max_length": 1000,
                         "block_id": "main_text_input-block",
                     },
                     {
@@ -173,7 +175,7 @@ class POST_VIA_SLACK(APIView):
         channels_to_send = channels_to_send_check["selected_conversations"] if "selected_conversations" in channels_to_send_check else None
         
         if url:
-            text = text + f"\n参考URL:[{url}]({url})" + "{" + ":target='_blank'}"
+            text = text + f"\n参考URL:[{url}]({url})"
         
         user_id = payload['user']['id']
         team_id = payload['team']['id']
