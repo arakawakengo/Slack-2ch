@@ -234,8 +234,8 @@ class UpdateWorkspaceView(APIView):
         workspace_info = client.team_info()
         
         
-        Workspace.objects.filter(workspace_id=workspace_info["team"]["id"]).update(workspace_name=workspace_info["team"]["name"])
-              
+        Workspace.objects.filter(workspace_id=workspace_info["team"]["id"]).update(workspace_name=workspace_info["team"]["name"])    
+        
         try:
             # Call the users.list method using the WebClient
             # users.list requires the users:read scope
