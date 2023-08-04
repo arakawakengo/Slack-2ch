@@ -175,7 +175,7 @@ class POST_VIA_SLACK(APIView):
         channels_to_send = channels_to_send_check["selected_conversations"] if "selected_conversations" in channels_to_send_check else None
         
         if url:
-            text = text + f"\n参考URL:[{url}]({url})" + "{" + ":target='_blank'}"
+            text = text + f"\n参考URL:[{url}]({url})"
         
         user_id = payload['user']['id']
         team_id = payload['team']['id']
