@@ -122,23 +122,23 @@ class CATCH_SLACK_COMMAND(APIView):
                         },
                         "block_id": "url_input-block"
                     },
-                    {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "チャンネルにも送信する場合は選択してください"
-                    },
-                    "accessory": {
-                        "type": "multi_conversations_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select channels",
-                            "emoji": True
-                        },
-                        "action_id": "multi_conversations_select-action"
-                    },
-                    "block_id": "multi_conversations_select-block"                    
-                }
+                    #{
+                        #"type": "section",
+                        #"text": {
+                        #    "type": "mrkdwn",
+                        #    "text": "チャンネルにも送信する場合は選択してください"
+                        #},
+                        #"accessory": {
+                        #    "type": "multi_conversations_select",
+                        #    "placeholder": {
+                        #        "type": "plain_text",
+                        #        "text": "Select channels",
+                        #        "emoji": True
+                        #    },
+                        #    "action_id": "multi_conversations_select-action"
+                        #},
+                        #"block_id": "multi_conversations_select-block"                    
+                    #}
                 ],
                 "submit": {
                     "type": "plain_text",
