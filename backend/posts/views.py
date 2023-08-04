@@ -63,7 +63,7 @@ def get_thread_user(question, reply_user):
 
     return thread_user_list
 
-def get_user_posts(user):
+def get_user_posts(user: CustomUser):
     post_list = Posts.objects.all()
     question_list = Questions.objects.all()
     reply_list = Replies.objects.all()
@@ -138,18 +138,27 @@ def get_user_posts(user):
     copied_p_list = copy.deepcopy(p_list)
     
     for post_info in copied_p_list:
+        post_remove_flag = True
         if post_info["user_id"] == user.user_id:
+            post_remove_flag = False
             continue
         for question_info in post_info["question_list"]:
-            user_id_set = set()
-            user_id_set.add(question_info["user_id"])
-            for reply_info in question_info["reply_list"]:
-                user_id_set.add(reply_info["user_id"])
-            
-            if user.user_id in user_id_set:
+            question_remove_flag = True
+            if question_info["user_id"] == user.user_id:
+                post_remove_flag = False
                 continue
+            
+            for reply_info in question_info["reply_list"]:
+                if reply_info["user_id"] == user.user_id:
+                    post_remove_flag = False
+                    break
+            else:
+                #post_info["question_list"].remove(question_info)
+                pass
+            continue      
         
-        p_list.remove(post_info)
+        if post_remove_flag:
+            p_list.remove(post_info)
     
     return p_list
 
