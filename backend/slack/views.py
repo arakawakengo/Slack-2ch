@@ -127,12 +127,8 @@ class CATCH_SLACK_COMMAND(APIView):
                         "block_id": "url_input-block"
                     },
                     {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "チャンネルにも送信する場合は選択してください"
-                        },
-                        "accessory": {
+                        "type": "input",
+                        "element": {
                             "type": "multi_conversations_select",
                             "placeholder": {
                                 "type": "plain_text",
@@ -141,7 +137,13 @@ class CATCH_SLACK_COMMAND(APIView):
                             },
                             "action_id": "multi_conversations_select-action"
                         },
-                        "block_id": "multi_conversations_select-block"                    
+                        "block_id": "multi_conversations_select-block",
+                        "label" : {
+                            "type": "plain_text",
+                            "text": "チャンネルにも送信する場合選択してください",
+                            "emoji": True
+                        },
+                        "optional": True,       
                     }
                 ],
                 "submit": {
